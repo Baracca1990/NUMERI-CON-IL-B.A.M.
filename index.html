@@ -1,0 +1,1659 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blocchi Aritmetici Multibase (B.A.M.) - Doppia Tastiera</title>
+    <!-- Tailwind CSS per uno stile moderno e responsive -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            blue: '#2563EB',
+                            green: '#059669',
+                            red: '#DC2626',
+                            yellow: '#D97706',
+                            bg: '#F0F9FF'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Comic Sans MS', 'Fredoka', 'Inter', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @keyframes popIn {
+            0% { transform: scale(0.6) rotate(-4deg); opacity: 0; }
+            70% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+        .animate-pop-in {
+            animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+        .block-hover {
+            transition: all 0.15s ease-in-out;
+        }
+        .block-hover:hover {
+            transform: translateY(-3px) scale(1.05);
+            filter: brightness(1.1);
+        }
+        .block-hover:active {
+            transform: translateY(1px) scale(0.95);
+        }
+        .numpad-btn {
+            transition: all 0.1s ease;
+        }
+        .numpad-btn:active {
+            transform: scale(0.92);
+        }
+        .input-active {
+            outline: 3px solid #6366f1 !important;
+            background-color: #f0fdf4 !important;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-sky-50 text-slate-800 min-h-screen flex flex-col font-sans select-none antialiased overflow-x-hidden pb-16">
+
+    <!-- Canvas per Effetto Coriandoli -->
+    <canvas id="confetti-canvas" class="fixed inset-0 pointer-events-none z-50"></canvas>
+
+    <!-- HEADER / COMPATTO -->
+    <header class="bg-white border-b-2 border-sky-200 shadow-sm sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-3 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 bg-amber-400 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-inner border border-amber-500">
+                    BAM
+                </div>
+                <div>
+                    <h1 class="text-base sm:text-xl font-black text-sky-950 tracking-tight leading-none">
+                        Blocchi Aritmetici Multibase
+                    </h1>
+                    <p class="text-[10px] sm:text-xs font-bold text-sky-600">Strumento Interattivo di Matematica</p>
+                </div>
+            </div>
+
+            <!-- Opzioni & Controlli Rapidi -->
+            <div class="flex items-center gap-2">
+                <!-- Selettore Difficoltà -->
+                <div class="bg-slate-100 p-1 rounded-xl flex items-center border border-slate-200 text-xs font-bold">
+                    <button id="btn-limit-99" onclick="setLimit(99)" class="px-2.5 py-1 rounded-lg transition-all">
+                        Fino a 99
+                    </button>
+                    <button id="btn-limit-999" onclick="setLimit(999)" class="px-2.5 py-1 rounded-lg transition-all shadow-sm bg-white text-sky-700">
+                        Fino a 999
+                    </button>
+                </div>
+
+                <!-- Selettore Temi Colore Pezzi -->
+                <button onclick="toggleColorTheme()" title="Cambia stile colori" class="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition-colors text-xs font-bold flex items-center gap-1">
+                    <span id="theme-icon">🎨</span>
+                    <span id="theme-text" class="hidden sm:inline">Colori Scuola</span>
+                </button>
+
+                <!-- Audio Mute Toggle -->
+                <button id="btn-audio" onclick="toggleAudio()" class="p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 hover:bg-emerald-200 transition-colors text-xs font-bold flex items-center gap-1">
+                    <span id="audio-icon">🔊</span>
+                    <span class="hidden md:inline">Audio ON</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- NAVIGAZIONE MODALITÀ -->
+        <nav class="max-w-7xl mx-auto px-3 mt-1 flex gap-1 overflow-x-auto pb-1">
+            <button onclick="switchMode(1)" id="tab-1" class="tab-btn px-3 py-1.5 rounded-t-xl font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all border-b-2">
+                <span>🔢</span> 1. Rappresenta
+            </button>
+            <button onclick="switchMode(2)" id="tab-2" class="tab-btn px-3 py-1.5 rounded-t-xl font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all border-b-2">
+                <span>🧩</span> 2. Che Numero è?
+            </button>
+            <button onclick="switchMode(3)" id="tab-3" class="tab-btn px-3 py-1.5 rounded-t-xl font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all border-b-2">
+                <span>✍️</span> 3. Componi il Numero
+            </button>
+            <button onclick="switchMode(4)" id="tab-4" class="tab-btn px-3 py-1.5 rounded-t-xl font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all border-b-2">
+                <span>🔍</span> 4. Scomponi il Numero
+            </button>
+            <button onclick="switchMode(5)" id="tab-5" class="tab-btn px-3 py-1.5 rounded-t-xl font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all border-b-2">
+                <span>📖</span> 5. Guida & Ricorda
+            </button>
+        </nav>
+    </header>
+
+    <!-- CONTENUTO PRINCIPALE -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-2 sm:p-4 flex flex-col justify-start">
+
+        <!-- MODALITÀ 1: RAPPRESENTA IL NUMERO -->
+        <section id="mode-1" class="mode-section space-y-2.5">
+            <div class="bg-gradient-to-r from-sky-600 to-indigo-600 rounded-2xl p-3 text-white shadow flex flex-wrap items-center justify-between gap-2">
+                <div class="flex items-center gap-3">
+                    <div class="text-left">
+                        <span class="text-[10px] font-extrabold uppercase text-sky-200 tracking-wider">Rappresenta con i B.A.M.</span>
+                        <div class="flex items-baseline gap-2">
+                            <span id="m1-target-number" class="text-3xl sm:text-4xl font-black text-amber-300 leading-none">164</span>
+                            <span id="m1-target-words" class="text-xs sm:text-sm font-bold text-sky-100 capitalize">(centosessantaquattro)</span>
+                        </div>
+                    </div>
+                    <button onclick="speakCurrentTargetMode1()" class="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all text-white text-base" title="Ascolta pronuncia">
+                        🔊
+                    </button>
+                </div>
+
+                <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="text-[10px] font-black uppercase text-sky-200 mr-1 hidden lg:inline">Esempi:</span>
+                    <button onclick="setTargetMode1(164)" class="px-2 py-1 rounded-lg font-extrabold text-xs bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/20">164</button>
+                    <button onclick="setTargetMode1(238)" class="px-2 py-1 rounded-lg font-extrabold text-xs bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/20">238</button>
+                    <button onclick="setTargetMode1(28)" class="px-2 py-1 rounded-lg font-extrabold text-xs bg-white/10 hover:bg-white/20 text-white transition-colors border border-white/20">28</button>
+                    <button onclick="generateNewTargetMode1()" class="px-3 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 text-amber-950 font-black text-xs shadow transition-all active:scale-95 ml-1">
+                        🎲 Nuovo
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border-2 border-sky-200 p-2.5 sm:p-3 shadow-sm flex flex-col space-y-3">
+                <div class="flex items-center justify-between text-xs font-black text-slate-500 border-b border-slate-100 pb-1">
+                    <span>📥 AREA TAVOLO MULTIBASE</span>
+                    <span class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md text-[11px]">💡 Clicca direttamente su un pezzo sul tavolo per rimuoverlo</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div id="col-h" class="bg-emerald-50/60 rounded-xl p-2 border border-emerald-200 flex flex-col justify-between space-y-2">
+                        <div>
+                            <div class="flex items-center justify-between mb-1 pb-1 border-b border-emerald-200/60">
+                                <span class="text-xs font-black text-emerald-800 uppercase flex items-center gap-1">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block"></span> Centinaia (h)
+                                </span>
+                                <span id="col-h-sum" class="text-xs font-extrabold text-emerald-800 bg-emerald-200/60 px-2 py-0.5 rounded">0</span>
+                            </div>
+                            <div id="workspace-h" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[110px] max-h-[150px] overflow-y-auto p-1"></div>
+                        </div>
+                        <div class="flex items-center gap-1 bg-emerald-100 p-1.5 rounded-xl border border-emerald-300">
+                            <button onclick="addBlock('h')" class="flex-grow py-1.5 bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white font-black text-xs rounded-lg shadow transition-colors">+ Piatto (h)</button>
+                            <button onclick="removeBlock('h')" class="px-3 py-1.5 bg-white hover:bg-emerald-50 text-emerald-800 font-black text-xs rounded-lg border border-emerald-300 transition-colors">-</button>
+                        </div>
+                    </div>
+
+                    <div id="col-da" class="bg-rose-50/60 rounded-xl p-2 border border-rose-200 flex flex-col justify-between space-y-2">
+                        <div>
+                            <div class="flex items-center justify-between mb-1 pb-1 border-b border-rose-200/60">
+                                <span class="text-xs font-black text-rose-800 uppercase flex items-center gap-1">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-rose-500 inline-block"></span> Decine (da)
+                                </span>
+                                <span id="col-da-sum" class="text-xs font-extrabold text-rose-800 bg-rose-200/60 px-2 py-0.5 rounded">0</span>
+                            </div>
+                            <div id="workspace-da" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[110px] max-h-[150px] overflow-y-auto p-1"></div>
+                        </div>
+                        <div class="flex items-center gap-1 bg-rose-100 p-1.5 rounded-xl border border-rose-300">
+                            <button onclick="addBlock('da')" class="flex-grow py-1.5 bg-rose-600 hover:bg-rose-700 active:scale-95 text-white font-black text-xs rounded-lg shadow transition-colors">+ Lungo (da)</button>
+                            <button onclick="removeBlock('da')" class="px-3 py-1.5 bg-white hover:bg-rose-50 text-rose-800 font-black text-xs rounded-lg border border-rose-300 transition-colors">-</button>
+                        </div>
+                    </div>
+
+                    <div id="col-u" class="bg-blue-50/60 rounded-xl p-2 border border-blue-200 flex flex-col justify-between space-y-2">
+                        <div>
+                            <div class="flex items-center justify-between mb-1 pb-1 border-b border-blue-200/60">
+                                <span class="text-xs font-black text-blue-800 uppercase flex items-center gap-1">
+                                    <span class="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span> Unità (u)
+                                </span>
+                                <span id="col-u-sum" class="text-xs font-extrabold text-blue-800 bg-blue-200/60 px-2 py-0.5 rounded">0</span>
+                            </div>
+                            <div id="workspace-u" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[110px] max-h-[150px] overflow-y-auto p-1"></div>
+                        </div>
+                        <div class="flex items-center gap-1 bg-blue-100 p-1.5 rounded-xl border border-blue-300">
+                            <button onclick="addBlock('u')" class="flex-grow py-1.5 bg-blue-600 hover:bg-blue-700 active:scale-95 text-white font-black text-xs rounded-lg shadow transition-colors">+ Cubetto (u)</button>
+                            <button onclick="removeBlock('u')" class="px-3 py-1.5 bg-white hover:bg-blue-50 text-blue-800 font-black text-xs rounded-lg border border-blue-300 transition-colors">-</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 pt-1">
+                    <button onclick="clearWorkspaceMode1()" class="bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-700 p-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center justify-center gap-1 transition-all border-b-4 border-slate-400">
+                        <span>🗑️</span> Svuota Tutto
+                    </button>
+                    <button onclick="verifyMode1()" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-amber-950 p-2.5 rounded-xl font-black text-sm flex items-center justify-center gap-1.5 shadow-md transition-all border-b-4 border-amber-700">
+                        <span>✅</span> VERIFICA RAPPRESENTAZIONE
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODALITÀ 2: CHE NUMERO È? -->
+        <section id="mode-2" class="mode-section hidden space-y-3">
+            <div class="bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-3 sm:p-4 text-white shadow flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div>
+                    <span class="bg-purple-400/40 text-purple-100 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                        Modalità Indovina
+                    </span>
+                    <h2 class="text-xl sm:text-2xl font-black mt-0.5 tracking-tight">
+                        Che numero è rappresentato nei blocchi?
+                    </h2>
+                    <p class="text-purple-100 font-medium text-xs">
+                        Conta i piatti (h), i lunghi (da) e i cubetti (u) e inserisci la risposta!
+                    </p>
+                </div>
+                <button onclick="generateExerciseMode2()" class="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl shadow transition-all text-xs flex items-center gap-1.5 active:scale-95 whitespace-nowrap">
+                    <span>🔄</span> Nuovo Esercizio
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <div class="lg:col-span-7 bg-white rounded-2xl border-2 border-purple-100 p-3 shadow-sm flex flex-col justify-between min-h-[260px]">
+                    <div class="text-[11px] font-black text-purple-900 uppercase tracking-wider mb-1 flex items-center justify-between">
+                        <span>👀 Osserva i blocchi:</span>
+                    </div>
+
+                    <div id="m2-blocks-display" class="flex flex-wrap gap-4 items-end justify-center my-auto p-3 bg-purple-50/40 rounded-xl border border-purple-100 min-h-[180px]"></div>
+                </div>
+
+                <div class="lg:col-span-5 bg-white rounded-2xl border-2 border-purple-100 p-4 shadow-sm flex flex-col justify-between space-y-3">
+                    <h3 class="font-black text-slate-800 text-sm border-b pb-1.5 border-slate-100 flex items-center gap-1.5">
+                        <span>📝</span> Completa la Tabella:
+                    </h3>
+
+                    <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                        <div class="grid grid-cols-3 gap-2 text-center mb-1.5">
+                            <div class="bg-emerald-500 text-white font-black py-1 rounded text-xs">h</div>
+                            <div class="bg-rose-500 text-white font-black py-1 rounded text-xs">da</div>
+                            <div class="bg-blue-500 text-white font-black py-1 rounded text-xs">u</div>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2">
+                            <input type="number" id="m2-input-h" min="0" max="9" placeholder="0" class="num-input w-full text-center text-xl font-black p-1.5 border-2 border-slate-300 rounded-lg focus:border-emerald-500 focus:outline-none bg-white cursor-pointer">
+                            <input type="number" id="m2-input-da" min="0" max="9" placeholder="0" class="num-input w-full text-center text-xl font-black p-1.5 border-2 border-slate-300 rounded-lg focus:border-rose-500 focus:outline-none bg-white cursor-pointer">
+                            <input type="number" id="m2-input-u" min="0" max="9" placeholder="0" class="num-input w-full text-center text-xl font-black p-1.5 border-2 border-slate-300 rounded-lg focus:border-blue-500 focus:outline-none bg-white cursor-pointer">
+                        </div>
+                    </div>
+
+                    <div class="space-y-1">
+                        <label for="m2-input-total" class="block text-[11px] font-black text-slate-500 uppercase">
+                            Scrivi il numero totale risultante:
+                        </label>
+                        <input type="number" id="m2-input-total" placeholder="Es. 164" class="num-input w-full text-center text-2xl font-black p-2 border-2 border-purple-200 rounded-xl focus:border-purple-600 focus:outline-none bg-purple-50/40 text-purple-950 cursor-pointer">
+                    </div>
+
+                    <div class="pt-1 flex gap-2">
+                        <button onclick="toggleHintMode2()" class="px-3 py-2 bg-amber-100 hover:bg-amber-200 text-amber-900 font-bold rounded-xl text-xs flex items-center gap-1 transition-colors">
+                            <span>💡</span> Aiuto
+                        </button>
+                        <button onclick="verifyMode2()" class="flex-grow px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-black rounded-xl shadow transition-all text-sm flex items-center justify-center gap-1.5 active:scale-95 border-b-4 border-purple-800">
+                            <span>✅</span> CONFERMA
+                        </button>
+                    </div>
+
+                    <div id="m2-hint-box" class="hidden p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs font-semibold text-amber-900"></div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODALITÀ 3: COMPONI IL NUMERO -->
+        <section id="mode-3" class="mode-section hidden space-y-3">
+            <div class="bg-gradient-to-r from-teal-600 to-emerald-600 rounded-2xl p-3 sm:p-4 text-white shadow flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex-grow">
+                    <div class="flex flex-wrap items-center gap-2 mb-1">
+                        <span class="bg-teal-400/40 text-teal-100 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                            Scomposizione Mista
+                        </span>
+
+                        <div class="bg-teal-900/60 p-0.5 rounded-lg flex items-center border border-teal-400/40 text-xs font-bold">
+                            <button id="m3-lvl-1" onclick="setMode3Level(1)" class="px-2.5 py-0.5 rounded-md transition-all bg-white text-teal-900 shadow-sm font-black">
+                                Livello 1 (Base)
+                            </button>
+                            <button id="m3-lvl-2" onclick="setMode3Level(2)" class="px-2.5 py-0.5 rounded-md transition-all text-teal-100 font-semibold hover:text-white">
+                                Livello 2 (Avanzato 🔥)
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 mt-1">
+                        <h2 class="text-xs sm:text-sm font-extrabold text-teal-100">Indicazione per comporre:</h2>
+                        <span id="m3-prompt-text" class="text-xl sm:text-2xl font-black text-amber-300 tracking-wide bg-teal-800/60 px-3 py-1 rounded-xl border border-teal-400/40">
+                            3u, 5h e 2da
+                        </span>
+                        <button onclick="speakCurrentPromptMode3()" class="p-1.5 bg-white/20 hover:bg-white/30 rounded-xl transition-all text-white text-base" title="Ascolta la scomposizione">
+                            🔊
+                        </button>
+                    </div>
+                    <p id="m3-subtitle" class="text-teal-100 font-medium text-xs mt-1">
+                        Componi prima la quantità sul tavolo con i blocchi e poi scrivi il numero che si forma!
+                    </p>
+                </div>
+                <button onclick="generateExerciseMode3()" class="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-xl shadow transition-all text-xs flex items-center gap-1.5 active:scale-95 whitespace-nowrap">
+                    <span>🎲</span> Nuovo Esercizio
+                </button>
+            </div>
+
+            <div class="bg-white rounded-2xl border-2 border-teal-200 p-3 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs font-black text-slate-500 border-b border-slate-100 pb-1">
+                    <span>🔨 1. TAVOLO DI COMPOSIZIONE BAM</span>
+                    <span class="text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md text-[11px]">💡 Usa i pulsanti per aggiungere o togliere i pezzi</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <!-- Colonna H -->
+                    <div id="m3-col-h" class="bg-emerald-50/60 rounded-xl p-2 border border-emerald-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1 pb-1 border-b border-emerald-200">
+                                <span class="text-xs font-black text-emerald-800 uppercase">Centinaia (h)</span>
+                            </div>
+                            <div id="m3-workspace-h" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[100px] max-h-[140px] overflow-y-auto p-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Colonna Da -->
+                    <div id="m3-col-da" class="bg-rose-50/60 rounded-xl p-2 border border-rose-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1 pb-1 border-b border-rose-200">
+                                <span class="text-xs font-black text-rose-800 uppercase">Decine (da)</span>
+                            </div>
+                            <div id="m3-workspace-da" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[100px] max-h-[140px] overflow-y-auto p-1"></div>
+                        </div>
+                    </div>
+
+                    <!-- Colonna U -->
+                    <div id="m3-col-u" class="bg-blue-50/60 rounded-xl p-2 border border-blue-200 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-1 pb-1 border-b border-blue-200">
+                                <span class="text-xs font-black text-blue-800 uppercase">Unità (u)</span>
+                            </div>
+                            <div id="m3-workspace-u" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[100px] max-h-[140px] overflow-y-auto p-1"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Controlli e Raggruppamenti condizionali -->
+                <div class="grid grid-cols-3 gap-2 pt-1">
+                    <div id="m3-controls-h" class="flex flex-col gap-1 bg-emerald-100 p-1.5 rounded-xl border border-emerald-300">
+                        <div class="flex items-center gap-1">
+                            <button onclick="addBlockMode3('h')" class="flex-grow py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg transition-colors shadow">+ h</button>
+                            <button onclick="removeBlockMode3('h')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 font-black text-xs rounded-lg border border-emerald-300 transition-colors">-</button>
+                        </div>
+                        <div id="m3-regroup-h-slot" class="min-h-[26px] flex items-center justify-center"></div>
+                    </div>
+
+                    <div class="flex flex-col gap-1 bg-rose-100 p-1.5 rounded-xl border border-rose-300">
+                        <div class="flex items-center gap-1">
+                            <button onclick="addBlockMode3('da')" class="flex-grow py-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-lg transition-colors shadow">+ da</button>
+                            <button onclick="removeBlockMode3('da')" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-800 font-black text-xs rounded-lg border border-rose-300 transition-colors">-</button>
+                        </div>
+                        <div id="m3-regroup-da-slot" class="min-h-[26px] flex items-center justify-center"></div>
+                    </div>
+
+                    <div class="flex flex-col gap-1 bg-blue-100 p-1.5 rounded-xl border border-blue-300">
+                        <div class="flex items-center gap-1">
+                            <button onclick="addBlockMode3('u')" class="flex-grow py-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-lg transition-colors shadow">+ u</button>
+                            <button onclick="removeBlockMode3('u')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-800 font-black text-xs rounded-lg border border-blue-300 transition-colors">-</button>
+                        </div>
+                        <div id="m3-regroup-u-slot" class="min-h-[26px] flex items-center justify-center"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-2xl border-2 border-teal-200 p-3 sm:p-4 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="w-full sm:w-1/2 space-y-1">
+                    <label for="m3-input-number" class="block text-xs font-black text-slate-600 uppercase">
+                        ✍️ 2. Scrivi il numero finale composto:
+                    </label>
+                    <input type="number" id="m3-input-number" placeholder="Es. 523" class="num-input w-full text-center text-2xl font-black p-2 border-2 border-teal-300 rounded-xl focus:border-teal-600 focus:outline-none bg-teal-50/30 text-teal-950 cursor-pointer">
+                </div>
+
+                <div class="w-full sm:w-1/2 flex gap-2">
+                    <button onclick="clearWorkspaceMode3()" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-xs flex items-center justify-center gap-1 transition-colors border border-slate-300">
+                        <span>🗑️</span> Svuota
+                    </button>
+                    <button onclick="verifyMode3()" class="flex-grow py-3 bg-teal-600 hover:bg-teal-700 text-white font-black rounded-xl shadow-lg transition-all text-sm flex items-center justify-center gap-1.5 active:scale-95 border-b-4 border-teal-800">
+                        <span>✅</span> VERIFICA COMPOSIZIONE
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODALITÀ 4: SCOMPONI IL NUMERO -->
+        <section id="mode-4" class="mode-section hidden space-y-3">
+            <div class="bg-gradient-to-r from-orange-500 to-amber-600 rounded-2xl p-3 sm:p-4 text-white shadow flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div class="flex-grow">
+                    <span class="bg-amber-400/40 text-amber-100 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
+                        Modalità Scomposizione
+                    </span>
+                    <div class="flex items-center gap-3 mt-1">
+                        <span id="m4-target-number" class="text-3xl sm:text-4xl font-black text-amber-200 leading-none">235</span>
+                        <button onclick="speakCurrentTargetMode4()" class="p-2 bg-white/20 hover:bg-white/30 rounded-xl transition-all text-white text-base" title="Ascolta pronuncia del numero">
+                            🔊
+                        </button>
+                    </div>
+                    <p class="text-amber-100 font-medium text-xs mt-1">
+                        Rappresenta il numero sul tavolo con i blocchi, poi completa la scomposizione in cifre e in valore additivo!
+                    </p>
+                </div>
+                <button onclick="generateExerciseMode4()" class="px-4 py-2 bg-amber-300 hover:bg-amber-200 text-amber-950 font-black rounded-xl shadow transition-all text-xs flex items-center gap-1.5 active:scale-95 whitespace-nowrap">
+                    <span>🎲</span> Nuovo Esercizio
+                </button>
+            </div>
+
+            <!-- Tavolo Multibase per la scomposizione -->
+            <div class="bg-white rounded-2xl border-2 border-amber-200 p-3 shadow-sm space-y-2">
+                <div class="flex items-center justify-between text-xs font-black text-slate-500 border-b border-slate-100 pb-1">
+                    <span>🔨 1. RAPPRESENTA SUL TAVOLO</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+                    <div id="m4-col-h" class="bg-emerald-50/60 rounded-xl p-2 border border-emerald-200 flex flex-col">
+                        <div class="flex items-center justify-between mb-1 pb-1 border-b border-emerald-200">
+                            <span class="text-xs font-black text-emerald-800 uppercase">Centinaia (h)</span>
+                        </div>
+                        <div id="m4-workspace-h" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[110px] max-h-[150px] overflow-y-auto p-1"></div>
+                    </div>
+
+                    <div id="m4-col-da" class="bg-rose-50/60 rounded-xl p-2 border border-rose-200 flex flex-col">
+                        <div class="flex items-center justify-between mb-1 pb-1 border-b border-rose-200">
+                            <span class="text-xs font-black text-rose-800 uppercase">Decine (da)</span>
+                        </div>
+                        <div id="m4-workspace-da" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[110px] max-h-[150px] overflow-y-auto p-1"></div>
+                    </div>
+
+                    <div id="m4-col-u" class="bg-blue-50/60 rounded-xl p-2 border border-blue-200 flex flex-col">
+                        <div class="flex items-center justify-between mb-1 pb-1 border-b border-blue-200">
+                            <span class="text-xs font-black text-blue-800 uppercase">Unità (u)</span>
+                        </div>
+                        <div id="m4-workspace-u" class="flex flex-wrap gap-1.5 items-end justify-center min-h-[110px] max-h-[150px] overflow-y-auto p-1"></div>
+                    </div>
+                </div>
+
+                <!-- Controlli aggiunta/rimozione blocchi -->
+                <div id="m4-controls-container" class="grid grid-cols-3 gap-2 pt-1">
+                    <div id="m4-controls-h" class="flex items-center gap-1 bg-emerald-100 p-1.5 rounded-xl border border-emerald-300">
+                        <button onclick="addBlockMode4('h')" class="flex-grow py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-lg transition-colors shadow">+ h</button>
+                        <button onclick="removeBlockMode4('h')" class="px-2.5 py-1 bg-white hover:bg-emerald-50 text-emerald-800 font-black text-xs rounded-lg border border-emerald-300 transition-colors">-</button>
+                    </div>
+
+                    <div id="m4-controls-da" class="flex items-center gap-1 bg-rose-100 p-1.5 rounded-xl border border-rose-300">
+                        <button onclick="addBlockMode4('da')" class="flex-grow py-1 bg-rose-600 hover:bg-rose-700 text-white font-black text-xs rounded-lg transition-colors shadow">+ da</button>
+                        <button onclick="removeBlockMode4('da')" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-800 font-black text-xs rounded-lg border border-rose-300 transition-colors">-</button>
+                    </div>
+
+                    <div id="m4-controls-u" class="flex items-center gap-1 bg-blue-100 p-1.5 rounded-xl border border-blue-300">
+                        <button onclick="addBlockMode4('u')" class="flex-grow py-1 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-lg transition-colors shadow">+ u</button>
+                        <button onclick="removeBlockMode4('u')" class="px-2.5 py-1 bg-white hover:bg-blue-50 text-blue-800 font-black text-xs rounded-lg border border-blue-300 transition-colors">-</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form di Scomposizione in Cifre e Valore Additivo -->
+            <div class="bg-white rounded-2xl border-2 border-amber-200 p-3 sm:p-4 shadow-sm space-y-3">
+                <h3 class="font-black text-slate-800 text-sm border-b pb-1.5 border-slate-100">
+                    ✍️ 2. COMPLETA LE DUE SCOMPOSIZIONI:
+                </h3>
+
+                <!-- Scomposizione in Cifre -->
+                <div class="bg-amber-50/50 p-2.5 rounded-xl border border-amber-200 flex flex-wrap items-center gap-2 text-sm font-black">
+                    <span class="text-amber-900 w-full sm:w-auto">A) In Cifre:</span>
+                    <div id="m4-input-h-container" class="flex items-center gap-1">
+                        <input type="number" id="m4-in-h" min="0" max="9" placeholder="0" class="num-input w-12 text-center p-1 border-2 border-emerald-400 rounded-lg bg-white cursor-pointer">
+                        <span class="text-emerald-700">h +</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="m4-in-da" min="0" max="9" placeholder="0" class="num-input w-12 text-center p-1 border-2 border-rose-400 rounded-lg bg-white cursor-pointer">
+                        <span class="text-rose-700">da +</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="m4-in-u" min="0" max="9" placeholder="0" class="num-input w-12 text-center p-1 border-2 border-blue-400 rounded-lg bg-white cursor-pointer">
+                        <span class="text-blue-700">u</span>
+                    </div>
+                </div>
+
+                <!-- Scomposizione Additiva -->
+                <div class="bg-amber-50/50 p-2.5 rounded-xl border border-amber-200 flex flex-wrap items-center gap-2 text-sm font-black">
+                    <div class="flex items-center justify-between w-full sm:w-auto gap-2">
+                        <span class="text-amber-900">B) Valore Additivo:</span>
+                        <button onclick="speakSlowAdditiveHelpMode4()" class="px-2.5 py-1 bg-amber-400 hover:bg-amber-300 text-amber-950 font-black rounded-lg text-xs flex items-center gap-1 shadow transition-all active:scale-95" title="Ascolta la scomposizione molto lenta">
+                            <span>💡 Aiuto (Ascolta)</span> 🔊
+                        </button>
+                    </div>
+
+                    <div id="m4-add-h-container" class="flex items-center gap-1">
+                        <input type="number" id="m4-add-h" placeholder="0" class="num-input w-16 text-center p-1 border-2 border-emerald-400 rounded-lg bg-white cursor-pointer">
+                        <span class="text-amber-800">+</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="m4-add-da" placeholder="0" class="num-input w-16 text-center p-1 border-2 border-rose-400 rounded-lg bg-white cursor-pointer">
+                        <span class="text-amber-800">+</span>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <input type="number" id="m4-add-u" placeholder="0" class="num-input w-16 text-center p-1 border-2 border-blue-400 rounded-lg bg-white cursor-pointer">
+                    </div>
+                </div>
+
+                <div class="flex gap-2 pt-1">
+                    <button onclick="clearWorkspaceMode4()" class="px-3 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-black rounded-xl text-xs flex items-center justify-center gap-1 transition-colors border border-slate-300">
+                        <span>🗑️</span> Svuota
+                    </button>
+                    <button onclick="verifyMode4()" class="flex-grow py-3 bg-amber-500 hover:bg-amber-600 text-amber-950 font-black rounded-xl shadow-lg transition-all text-sm flex items-center justify-center gap-1.5 active:scale-95 border-b-4 border-amber-700">
+                        <span>✅</span> VERIFICA SCOMPOSIZIONE
+                    </button>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- MODALITÀ 5: GUIDA DIDATTICA & RICORDA -->
+        <section id="mode-5" class="mode-section hidden space-y-4">
+            <div class="bg-white rounded-2xl border-2 border-sky-100 p-4 shadow-sm space-y-4">
+                <div class="text-center max-w-xl mx-auto space-y-1">
+                    <span class="bg-amber-100 text-amber-800 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">Scheda Didattica</span>
+                    <h2 class="text-xl sm:text-2xl font-black text-sky-950">Ricorda i Valori dei B.A.M.</h2>
+                    <p class="text-slate-600 text-xs">Tieni a mente la corrispondenza tra ogni blocco e il suo valore:</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="bg-blue-50/60 rounded-2xl p-4 border border-blue-200 flex flex-col items-center text-center space-y-2">
+                        <div class="w-14 h-14 flex items-center justify-center bg-white rounded-xl shadow-sm border border-blue-100" id="guide-cubetto-svg"></div>
+                        <div>
+                            <h3 class="font-black text-blue-900 text-base">1 Unità ( u )</h3>
+                            <p class="text-xs font-bold text-blue-700">o cubetto</p>
+                        </div>
+                        <div class="bg-white px-3 py-1 rounded-lg border border-blue-200 text-xs font-black text-blue-950">
+                            Vale 1
+                        </div>
+                    </div>
+
+                    <div class="bg-rose-50/60 rounded-2xl p-4 border border-rose-200 flex flex-col items-center text-center space-y-2">
+                        <div class="h-28 flex items-center justify-center bg-white px-3 rounded-xl shadow-sm border border-rose-100" id="guide-lungo-svg"></div>
+                        <div>
+                            <h3 class="font-black text-rose-900 text-base">1 Decina ( da )</h3>
+                            <p class="text-xs font-bold text-rose-700">o lungo</p>
+                        </div>
+                        <div class="bg-white px-3 py-1 rounded-lg border border-rose-200 text-xs font-black text-rose-950">
+                            Vale 10 u
+                        </div>
+                    </div>
+
+                    <div class="bg-emerald-50/60 rounded-2xl p-4 border border-emerald-200 flex flex-col items-center text-center space-y-2">
+                        <div class="w-28 h-28 flex items-center justify-center bg-white rounded-xl shadow-sm border border-emerald-100" id="guide-piatto-svg"></div>
+                        <div>
+                            <h3 class="font-black text-emerald-900 text-base">1 Centinaio ( h )</h3>
+                            <p class="text-xs font-bold text-emerald-700">o piatto</p>
+                        </div>
+                        <div class="bg-white px-3 py-1 rounded-lg border border-emerald-200 text-xs font-black text-emerald-950">
+                            Vale 100 u / 10 da
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 p-4 rounded-xl border border-amber-200 space-y-1 text-xs text-amber-950">
+                    <h4 class="font-black text-amber-900 text-sm flex items-center gap-1.5">
+                        <span>💡</span> Regole del cambio nel sistema decimale:
+                    </h4>
+                    <ul class="list-disc list-inside space-y-0.5 font-medium pl-1">
+                        <li><strong>10 Cubetti (u)</strong> equivalgono a <strong>1 Lungo (da)</strong>.</li>
+                        <li><strong>10 Lunghi (da)</strong> equivalgono a <strong>1 Piatto (h)</strong>.</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- TASTIERINO NUMERICO DEDICATO SU 2 RIGHE (APRE AL FOCUS) -->
+    <div id="virtual-numpad" class="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md text-white p-2 sm:p-2.5 shadow-2xl border-t-2 border-indigo-400/50 z-40 transition-all duration-300 hidden">
+        <div class="max-w-3xl mx-auto flex flex-col gap-1.5">
+            
+            <div class="flex items-center justify-between px-1 text-[11px] font-black">
+                <span class="text-indigo-300 flex items-center gap-1">🔢 Tastierino Numerico (o usa la tastiera del PC)</span>
+                <button onclick="hideNumpad()" class="text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 text-[10px]">
+                    ✖ Chiudi
+                </button>
+            </div>
+
+            <div class="grid grid-cols-6 gap-1 sm:gap-1.5">
+                <button onclick="pressNumpadKey('1')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">1</button>
+                <button onclick="pressNumpadKey('2')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">2</button>
+                <button onclick="pressNumpadKey('3')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">3</button>
+                <button onclick="pressNumpadKey('4')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">4</button>
+                <button onclick="pressNumpadKey('5')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">5</button>
+                <button onclick="pressNumpadKey('BACKSPACE')" class="numpad-btn bg-amber-600 hover:bg-amber-500 text-white font-black text-xs sm:text-sm py-1.5 sm:py-2 rounded-xl shadow flex items-center justify-center" title="Cancella ultima cifra">⌫</button>
+
+                <button onclick="pressNumpadKey('6')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">6</button>
+                <button onclick="pressNumpadKey('7')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">7</button>
+                <button onclick="pressNumpadKey('8')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">8</button>
+                <button onclick="pressNumpadKey('9')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">9</button>
+                <button onclick="pressNumpadKey('0')" class="numpad-btn bg-slate-800 hover:bg-indigo-600 text-white font-black text-base sm:text-lg py-1.5 sm:py-2 rounded-xl shadow border border-slate-700">0</button>
+                <button onclick="pressNumpadKey('NEXT')" class="numpad-btn bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs sm:text-sm py-1.5 sm:py-2 rounded-xl shadow flex items-center justify-center gap-0.5" title="Prossimo Campo o Conferma">
+                    <span>➔</span>
+                </button>
+            </div>
+            
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="bg-white border-t border-slate-200 py-2 text-center text-[11px] font-bold text-slate-400">
+        Web App Didattica • Blocchi Aritmetici Multibase (B.A.M.)
+    </footer>
+
+
+    <!-- MODALE FEEDBACK ESITO -->
+    <div id="modal-feedback" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+        <div id="modal-card" class="bg-white rounded-3xl border-4 border-amber-400 p-5 sm:p-6 max-w-sm w-full text-center shadow-2xl space-y-3 animate-pop-in">
+            <div id="modal-icon" class="text-5xl animate-bounce">🎉</div>
+            <h3 id="modal-title" class="text-2xl font-black text-slate-800">Bravissimo!</h3>
+            <p id="modal-message" class="text-xs sm:text-sm font-semibold text-slate-600 leading-relaxed">
+                Messaggio di feedback.
+            </p>
+            
+            <div id="modal-actions" class="pt-2"></div>
+        </div>
+    </div>
+
+
+    <!-- SCRIPT LOGICA E FUNZIONALITÀ APPLICAZIONE -->
+    <script>
+        class AudioSynth {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+            init() {
+                if (!this.ctx) {
+                    const AudioContext = window.AudioContext || window.webkitAudioContext;
+                    if (AudioContext) {
+                        this.ctx = new AudioContext();
+                    }
+                }
+            }
+            playPop() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(380, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(750, this.ctx.currentTime + 0.07);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.07);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.07);
+            }
+            playRemove() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(520, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(220, this.ctx.currentTime + 0.08);
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.08);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.08);
+            }
+            playSuccess() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const notes = [523.25, 659.25, 783.99, 1046.50];
+                notes.forEach((freq, idx) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    osc.frequency.value = freq;
+                    const startTime = this.ctx.currentTime + idx * 0.08;
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.25, startTime + 0.02);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.28);
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(startTime);
+                    osc.stop(startTime + 0.28);
+                });
+            }
+            playError() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+                osc.frequency.linearRampToValueAtTime(140, this.ctx.currentTime + 0.2);
+                gain.gain.setValueAtTime(0.18, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+        }
+        const audio = new AudioSynth();
+
+        function toggleAudio() {
+            audio.enabled = !audio.enabled;
+            const btn = document.getElementById('btn-audio');
+            const icon = document.getElementById('audio-icon');
+            if (audio.enabled) {
+                btn.className = "p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-emerald-100 border border-emerald-300 text-emerald-800 hover:bg-emerald-200 transition-colors text-xs font-bold flex items-center gap-1";
+                icon.textContent = "🔊";
+            } else {
+                btn.className = "p-1.5 sm:px-2.5 sm:py-1 rounded-xl bg-slate-100 border border-slate-300 text-slate-500 hover:bg-slate-200 transition-colors text-xs font-bold flex items-center gap-1";
+                icon.textContent = "🔇";
+            }
+        }
+
+        const state = {
+            currentMode: 1,
+            maxLimit: 999,
+            colorTheme: 'scuola',
+            activeInput: null,
+
+            m1: { targetNumber: 164, h: 0, da: 0, u: 0 },
+            m2: { targetH: 0, targetDa: 0, targetU: 0, targetTotal: 0 },
+            m3: {
+                level: 1,
+                targetH: 0, targetDa: 0, targetU: 0, targetTotal: 0,
+                promptText: '', promptSpeak: '',
+                userH: 0, userDa: 0, userU: 0
+            },
+            m4: {
+                targetNumber: 235,
+                targetH: 2, targetDa: 3, targetU: 5,
+                userH: 0, userDa: 0, userU: 0
+            }
+        };
+
+        /* GESTIONE DOPPIA TASTIERA (FISICA E VIRTUALE A COMPARSA) */
+        function initVirtualNumpad() {
+            document.querySelectorAll('.num-input').forEach(input => {
+                // Rimosso 'readonly' per permettere la digitazione diretta da tastiera fisica del computer
+                input.removeAttribute('readonly');
+
+                input.addEventListener('focus', (e) => {
+                    setActiveInput(e.target);
+                });
+                input.addEventListener('click', (e) => {
+                    setActiveInput(e.target);
+                });
+            });
+
+            // Chiude il tastierino virtuale se si clicca fuori dai campi di input e fuori dal tastierino
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.num-input') && !e.target.closest('#virtual-numpad')) {
+                    hideNumpad();
+                }
+            });
+        }
+
+        function setActiveInput(inputElem) {
+            document.querySelectorAll('.num-input').forEach(i => i.classList.remove('input-active'));
+            state.activeInput = inputElem;
+            if (inputElem) {
+                inputElem.classList.add('input-active');
+                showNumpad();
+            }
+        }
+
+        function showNumpad() {
+            const numpad = document.getElementById('virtual-numpad');
+            numpad.classList.remove('hidden');
+            document.body.classList.add('pb-36');
+        }
+
+        function hideNumpad() {
+            const numpad = document.getElementById('virtual-numpad');
+            numpad.classList.add('hidden');
+            document.querySelectorAll('.num-input').forEach(i => i.classList.remove('input-active'));
+            state.activeInput = null;
+            document.body.classList.remove('pb-36');
+        }
+
+        function pressNumpadKey(key) {
+            audio.playPop();
+            if (!state.activeInput) return;
+
+            const input = state.activeInput;
+            let currentVal = input.value || '';
+
+            if (key >= '0' && key <= '9') {
+                const maxLen = input.getAttribute('maxlength') || 4;
+                if (currentVal.length < maxLen) {
+                    input.value = currentVal + key;
+                }
+            } else if (key === 'BACKSPACE') {
+                input.value = currentVal.slice(0, -1);
+            } else if (key === 'NEXT') {
+                focusNextInput();
+            }
+        }
+
+        function focusNextInput() {
+            const currentModeSec = document.querySelector(`.mode-section:not(.hidden)`);
+            if (!currentModeSec) return;
+            const inputs = Array.from(currentModeSec.querySelectorAll('.num-input'));
+            if (inputs.length === 0) return;
+
+            const currentIndex = inputs.indexOf(state.activeInput);
+            if (currentIndex >= 0 && currentIndex < inputs.length - 1) {
+                setActiveInput(inputs[currentIndex + 1]);
+            } else {
+                hideNumpad();
+                if (state.currentMode === 2) verifyMode2();
+                else if (state.currentMode === 3) verifyMode3();
+                else if (state.currentMode === 4) verifyMode4();
+            }
+        }
+
+        function numberToWordsIt(n) {
+            if (n === 0) return 'zero';
+            const units = ['', 'uno', 'due', 'tre', 'quattro', 'cinque', 'sei', 'sette', 'otto', 'nove'];
+            const teens = ['dieci', 'undici', 'dodici', 'tredici', 'quattordici', 'quindici', 'sedici', 'diciassette', 'diciotto', 'dicianove'];
+            const tens = ['', 'dieci', 'venti', 'trenta', 'quaranta', 'cinquanta', 'sessanta', 'settanta', 'ottanta', 'novanta'];
+
+            if (n < 10) return units[n];
+            if (n < 20) return teens[n - 10];
+            if (n < 100) {
+                let t = Math.floor(n / 10);
+                let u = n % 10;
+                let tenStr = tens[t];
+                let unitStr = units[u];
+                if (u === 1 || u === 8) tenStr = tenStr.slice(0, -1);
+                return tenStr + unitStr;
+            }
+            if (n < 1000) {
+                let h = Math.floor(n / 100);
+                let rest = n % 100;
+                let hundredStr = (h === 1) ? 'cento' : units[h] + 'cento';
+                if (rest === 0) return hundredStr;
+                let restStr = numberToWordsIt(rest);
+                if (restStr.startsWith('otto') || restStr.startsWith('ottanta')) {
+                    hundredStr = hundredStr.slice(0, -1);
+                }
+                return hundredStr + restStr;
+            }
+            return n.toString();
+        }
+
+        function getFemaleItalianVoice() {
+            if (!('speechSynthesis' in window)) return null;
+            const voices = window.speechSynthesis.getVoices();
+            const itVoices = voices.filter(v => v.lang && v.lang.toLowerCase().includes('it'));
+            const femaleVoice = itVoices.find(v => {
+                const name = v.name.toLowerCase();
+                return name.includes('alice') || name.includes('elsa') || name.includes('federica') || 
+                       name.includes('bianca') || name.includes('paola') || name.includes('lucia') || 
+                       name.includes('female') || name.includes('google italiano');
+            });
+            return femaleVoice || itVoices[0] || null;
+        }
+
+        function speakText(text, isSlow = false) {
+            if ('speechSynthesis' in window) {
+                window.speechSynthesis.cancel();
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.lang = 'it-IT';
+                utterance.pitch = 1.45;
+                utterance.rate = isSlow ? 0.40 : 0.90;
+                
+                const voice = getFemaleItalianVoice();
+                if (voice) utterance.voice = voice;
+
+                window.speechSynthesis.speak(utterance);
+            }
+        }
+
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => getFemaleItalianVoice();
+        }
+
+        function getPalette() {
+            if (state.colorTheme === 'legno') {
+                return {
+                    h: { main: '#D97706', light: '#FBBF24', dark: '#92400E', stroke: '#78350F' },
+                    da: { main: '#D97706', light: '#FBBF24', dark: '#92400E', stroke: '#78350F' },
+                    u: { main: '#D97706', light: '#FBBF24', dark: '#92400E', stroke: '#78350F' }
+                };
+            }
+            return {
+                h: { main: '#10B981', light: '#6EE7B7', dark: '#047857', stroke: '#065F46' },
+                da: { main: '#EF4444', light: '#FCA5A5', dark: '#B91C1C', stroke: '#991B1B' },
+                u: { main: '#3B82F6', light: '#93C5FD', dark: '#1D4ED8', stroke: '#1E40AF' }
+            };
+        }
+
+        function createCubettoSvg(onClickHandler) {
+            const p = getPalette().u;
+            const clickAttr = onClickHandler ? `onclick="${onClickHandler}"` : '';
+            return `
+            <svg viewBox="0 0 44 44" class="w-6 h-6 sm:w-7 sm:h-7 block-hover cursor-pointer drop-shadow select-none animate-pop-in flex-shrink-0" ${clickAttr} title="Cubetto (1u)">
+                <polygon points="22,4 40,13 22,22 4,13" fill="${p.light}" stroke="${p.stroke}" stroke-width="1.5" stroke-linejoin="round" />
+                <polygon points="22,22 40,13 40,33 22,42" fill="${p.dark}" stroke="${p.stroke}" stroke-width="1.5" stroke-linejoin="round" />
+                <polygon points="4,13 22,22 22,42 4,33" fill="${p.main}" stroke="${p.stroke}" stroke-width="1.5" stroke-linejoin="round" />
+            </svg>`;
+        }
+
+        function createLungoSvg(onClickHandler) {
+            const p = getPalette().da;
+            const clickAttr = onClickHandler ? `onclick="${onClickHandler}"` : '';
+            const segH = 18;
+            const topY = 10;
+            const depthX = 8;
+            const depthY = 4;
+
+            let innerSvg = `<polygon points="12,${topY} ${12+depthX},${topY-depthY} ${4+depthX},${topY-depthY} 4,${topY}" fill="${p.light}" stroke="${p.stroke}" stroke-width="1" stroke-linejoin="round" />`;
+
+            for (let i = 0; i < 10; i++) {
+                const y1 = topY + i * segH;
+                const y2 = y1 + segH;
+                innerSvg += `<polygon points="4,${y1} 12,${y1} 12,${y2} 4,${y2}" fill="${p.main}" stroke="${p.stroke}" stroke-width="1" stroke-linejoin="round" />`;
+                innerSvg += `<polygon points="12,${y1} ${12+depthX},${y1-depthY} ${12+depthX},${y2-depthY} 12,${y2}" fill="${p.dark}" stroke="${p.stroke}" stroke-width="1" stroke-linejoin="round" />`;
+            }
+
+            return `
+            <svg viewBox="0 0 26 200" class="w-5 sm:w-6 h-24 sm:h-28 block-hover cursor-pointer drop-shadow select-none animate-pop-in flex-shrink-0" ${clickAttr} title="Lungo (1da = 10u)">
+                ${innerSvg}
+            </svg>`;
+        }
+
+        function createPiattoSvg(onClickHandler) {
+            const p = getPalette().h;
+            const clickAttr = onClickHandler ? `onclick="${onClickHandler}"` : '';
+            const originX = 6;
+            const originY = 16;
+            const size = 110;
+            const step = size / 10;
+            const depthX = 12;
+            const depthY = 6;
+
+            let gridLines = '';
+            for (let i = 1; i < 10; i++) {
+                const x = originX + i * step;
+                gridLines += `<line x1="${x}" y1="${originY}" x2="${x}" y2="${originY+size}" stroke="${p.stroke}" stroke-width="0.8" opacity="0.7" />`;
+                const y = originY + i * step;
+                gridLines += `<line x1="${originX}" y1="${y}" x2="${originX+size}" y2="${y}" stroke="${p.stroke}" stroke-width="0.8" opacity="0.7" />`;
+            }
+
+            return `
+            <svg viewBox="0 0 135 135" class="w-16 h-16 sm:w-20 sm:h-20 block-hover cursor-pointer drop-shadow select-none animate-pop-in flex-shrink-0" ${clickAttr} title="Piatto (1h = 100u)">
+                <polygon points="${originX},${originY} ${originX+depthX},${originY-depthY} ${originX+size+depthX},${originY-depthY} ${originX+size},${originY}" fill="${p.light}" stroke="${p.stroke}" stroke-width="1" stroke-linejoin="round" />
+                <polygon points="${originX+size},${originY} ${originX+size+depthX},${originY-depthY} ${originX+size+depthX},${originY+size-depthY} ${originX+size},${originY+size}" fill="${p.dark}" stroke="${p.stroke}" stroke-width="1" stroke-linejoin="round" />
+                <rect x="${originX}" y="${originY}" width="${size}" height="${size}" fill="${p.main}" stroke="${p.stroke}" stroke-width="1.5" />
+                ${gridLines}
+            </svg>`;
+        }
+
+        function switchMode(modeNum) {
+            hideNumpad();
+            state.currentMode = modeNum;
+            document.querySelectorAll('.mode-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`mode-${modeNum}`).classList.remove('hidden');
+
+            document.querySelectorAll('.tab-btn').forEach((tab, idx) => {
+                if (idx + 1 === modeNum) {
+                    tab.className = "tab-btn px-3 py-1.5 rounded-t-xl font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all border-b-2 border-sky-600 bg-sky-100 text-sky-950 shadow-sm";
+                } else {
+                    tab.className = "tab-btn px-3 py-1.5 rounded-t-xl font-black text-xs sm:text-sm flex items-center gap-1.5 whitespace-nowrap transition-all border-b-2 border-transparent text-slate-500 hover:bg-slate-100 hover:text-slate-800";
+                }
+            });
+
+            audio.playPop();
+
+            if (modeNum === 1) renderMode1();
+            if (modeNum === 2) generateExerciseMode2();
+            if (modeNum === 3) generateExerciseMode3();
+            if (modeNum === 4) generateExerciseMode4();
+            if (modeNum === 5) renderGuide();
+        }
+
+        function setLimit(limit) {
+            state.maxLimit = limit;
+            const btn99 = document.getElementById('btn-limit-99');
+            const btn999 = document.getElementById('btn-limit-999');
+
+            if (limit === 99) {
+                btn99.className = "px-2.5 py-1 rounded-lg transition-all shadow-sm bg-white text-sky-700 font-extrabold";
+                btn999.className = "px-2.5 py-1 rounded-lg transition-all text-slate-500 font-semibold hover:text-slate-800";
+                document.getElementById('col-h').classList.add('hidden');
+                document.getElementById('m3-col-h').classList.add('hidden');
+                document.getElementById('m4-col-h').classList.add('hidden');
+                document.getElementById('m4-input-h-container').classList.add('hidden');
+                document.getElementById('m4-add-h-container').classList.add('hidden');
+            } else {
+                btn999.className = "px-2.5 py-1 rounded-lg transition-all shadow-sm bg-white text-sky-700 font-extrabold";
+                btn99.className = "px-2.5 py-1 rounded-lg transition-all text-slate-500 font-semibold hover:text-slate-800";
+                document.getElementById('col-h').classList.remove('hidden');
+                document.getElementById('m3-col-h').classList.remove('hidden');
+                document.getElementById('m4-col-h').classList.remove('hidden');
+                document.getElementById('m4-input-h-container').classList.remove('hidden');
+                document.getElementById('m4-add-h-container').classList.remove('hidden');
+            }
+
+            audio.playPop();
+
+            if (state.m1.targetNumber > limit) generateNewTargetMode1();
+            if (state.currentMode === 2) generateExerciseMode2();
+            if (state.currentMode === 3) generateExerciseMode3();
+            if (state.currentMode === 4) generateExerciseMode4();
+        }
+
+        function toggleColorTheme() {
+            state.colorTheme = (state.colorTheme === 'scuola') ? 'legno' : 'scuola';
+            document.getElementById('theme-text').textContent = (state.colorTheme === 'scuola') ? 'Colori Scuola' : 'Stile Legno';
+            audio.playPop();
+
+            renderMode1();
+            if (state.currentMode === 2) renderMode2Display();
+            if (state.currentMode === 3) renderMode3Workspace();
+            if (state.currentMode === 4) renderMode4Workspace();
+            renderGuide();
+        }
+
+        /* --- M1 --- */
+        function generateNewTargetMode1() {
+            let rand = (state.maxLimit === 99) ? Math.floor(Math.random() * 90) + 10 : Math.floor(Math.random() * 899) + 100;
+            setTargetMode1(rand);
+        }
+
+        function setTargetMode1(num) {
+            state.m1.targetNumber = num;
+            document.getElementById('m1-target-number').textContent = num;
+            document.getElementById('m1-target-words').textContent = `(${numberToWordsIt(num)})`;
+            clearWorkspaceMode1();
+        }
+
+        function speakCurrentTargetMode1() {
+            speakText(`${state.m1.targetNumber}, ${numberToWordsIt(state.m1.targetNumber)}`);
+        }
+
+        function addBlock(type) {
+            if (type === 'h' && state.m1.h >= 9) return;
+            if (type === 'da' && state.m1.da >= 9) return;
+            if (type === 'u' && state.m1.u >= 9) return;
+            state.m1[type]++;
+            audio.playPop();
+            renderMode1();
+        }
+
+        function removeBlock(type) {
+            if (state.m1[type] > 0) {
+                state.m1[type]--;
+                audio.playRemove();
+                renderMode1();
+            }
+        }
+
+        function clearWorkspaceMode1() {
+            state.m1.h = 0; state.m1.da = 0; state.m1.u = 0;
+            renderMode1();
+        }
+
+        function renderMode1() {
+            document.getElementById('col-h-sum').textContent = state.m1.h * 100;
+            document.getElementById('col-da-sum').textContent = state.m1.da * 10;
+            document.getElementById('col-u-sum').textContent = state.m1.u;
+
+            const wH = document.getElementById('workspace-h');
+            wH.innerHTML = '';
+            for (let i = 0; i < state.m1.h; i++) wH.innerHTML += createPiattoSvg(`removeBlock('h')`);
+
+            const wDa = document.getElementById('workspace-da');
+            wDa.innerHTML = '';
+            for (let i = 0; i < state.m1.da; i++) wDa.innerHTML += createLungoSvg(`removeBlock('da')`);
+
+            const wU = document.getElementById('workspace-u');
+            wU.innerHTML = '';
+            for (let i = 0; i < state.m1.u; i++) wU.innerHTML += createCubettoSvg(`removeBlock('u')`);
+        }
+
+        function verifyMode1() {
+            hideNumpad();
+            const currentTotal = (state.m1.h * 100) + (state.m1.da * 10) + state.m1.u;
+            const target = state.m1.targetNumber;
+
+            if (currentTotal === target) {
+                audio.playSuccess();
+                launchConfetti();
+                showModal({
+                    title: 'Bravissimo! 🎉',
+                    message: `Hai rappresentato correttamente il numero ${target}!`,
+                    isSuccess: true,
+                    actionText: 'Prossimo Numero ➔',
+                    actionCallback: () => { closeModal(); generateNewTargetMode1(); }
+                });
+            } else {
+                audio.playError();
+                let hintMsg = `Hai rappresentato il numero <strong>${currentTotal}</strong>, ma l'obiettivo è <strong>${target}</strong>.`;
+                showModal({
+                    title: '🤔 Riprova!',
+                    message: hintMsg,
+                    isSuccess: false,
+                    actionText: '✏️ Correggi',
+                    actionCallback: () => closeModal()
+                });
+            }
+        }
+
+        /* --- M2 --- */
+        function generateExerciseMode2() {
+            hideNumpad();
+            state.m2.targetH = (state.maxLimit === 99) ? 0 : Math.floor(Math.random() * 4) + 1;
+            state.m2.targetDa = Math.floor(Math.random() * 8) + 1;
+            state.m2.targetU = Math.floor(Math.random() * 9) + 1;
+            state.m2.targetTotal = (state.m2.targetH * 100) + (state.m2.targetDa * 10) + state.m2.targetU;
+
+            document.getElementById('m2-input-h').value = '';
+            document.getElementById('m2-input-da').value = '';
+            document.getElementById('m2-input-u').value = '';
+            document.getElementById('m2-input-total').value = '';
+            document.getElementById('m2-hint-box').classList.add('hidden');
+
+            renderMode2Display();
+        }
+
+        function renderMode2Display() {
+            const display = document.getElementById('m2-blocks-display');
+            display.innerHTML = '';
+
+            if (state.m2.targetH > 0) {
+                const groupH = document.createElement('div');
+                groupH.className = "flex flex-wrap gap-1.5 items-end justify-center p-2 bg-emerald-100/50 rounded-xl border border-emerald-200";
+                for (let i = 0; i < state.m2.targetH; i++) groupH.innerHTML += createPiattoSvg();
+                display.appendChild(groupH);
+            }
+
+            if (state.m2.targetDa > 0) {
+                const groupDa = document.createElement('div');
+                groupDa.className = "flex flex-wrap gap-1.5 items-end justify-center p-2 bg-rose-100/50 rounded-xl border border-rose-200";
+                for (let i = 0; i < state.m2.targetDa; i++) groupDa.innerHTML += createLungoSvg();
+                display.appendChild(groupDa);
+            }
+
+            if (state.m2.targetU > 0) {
+                const groupU = document.createElement('div');
+                groupU.className = "flex flex-wrap gap-1.5 items-end justify-center p-2 bg-blue-100/50 rounded-xl border border-blue-200";
+                for (let i = 0; i < state.m2.targetU; i++) groupU.innerHTML += createCubettoSvg();
+                display.appendChild(groupU);
+            }
+        }
+
+        function toggleHintMode2() {
+            const hintBox = document.getElementById('m2-hint-box');
+            hintBox.classList.toggle('hidden');
+            hintBox.innerHTML = `💡 Ci sono ${state.m2.targetH > 0 ? `<strong>${state.m2.targetH}</strong> centinaia (h), ` : ''}<strong>${state.m2.targetDa}</strong> decine (da) e <strong>${state.m2.targetU}</strong> unità (u).`;
+            audio.playPop();
+        }
+
+        function verifyMode2() {
+            hideNumpad();
+            const inH = parseInt(document.getElementById('m2-input-h').value) || 0;
+            const inDa = parseInt(document.getElementById('m2-input-da').value) || 0;
+            const inU = parseInt(document.getElementById('m2-input-u').value) || 0;
+            const inTotal = parseInt(document.getElementById('m2-input-total').value) || 0;
+
+            const isHDaUCorrect = (inH === state.m2.targetH) && (inDa === state.m2.targetDa) && (inU === state.m2.targetU);
+            const isTotalCorrect = (inTotal === state.m2.targetTotal);
+
+            if (isHDaUCorrect && isTotalCorrect) {
+                audio.playSuccess();
+                launchConfetti();
+                showModal({
+                    title: '⭐ Esatto!',
+                    message: `Il numero è proprio ${state.m2.targetTotal}!`,
+                    isSuccess: true,
+                    actionText: 'Prossimo Esercizio ➔',
+                    actionCallback: () => { closeModal(); generateExerciseMode2(); }
+                });
+            } else {
+                audio.playError();
+                showModal({
+                    title: '❌ Ops, ricontrolla!',
+                    message: 'Verifica la tabella o il totale.',
+                    isSuccess: false,
+                    actionText: 'Riprova ✏️',
+                    actionCallback: () => closeModal()
+                });
+            }
+        }
+
+        /* --- M3 --- */
+        function setMode3Level(lvl) {
+            state.m3.level = lvl;
+            const btn1 = document.getElementById('m3-lvl-1');
+            const btn2 = document.getElementById('m3-lvl-2');
+            const subtitle = document.getElementById('m3-subtitle');
+
+            const hSlot = document.getElementById('m3-regroup-h-slot');
+            const daSlot = document.getElementById('m3-regroup-da-slot');
+            const uSlot = document.getElementById('m3-regroup-u-slot');
+
+            if (lvl === 1) {
+                btn1.className = "px-2.5 py-0.5 rounded-md transition-all bg-white text-teal-900 shadow-sm font-black";
+                btn2.className = "px-2.5 py-0.5 rounded-md transition-all text-teal-100 font-semibold hover:text-white";
+                subtitle.textContent = "Componi la quantità richiesta e scrivi il numero che si forma!";
+                hSlot.innerHTML = '';
+                daSlot.innerHTML = '';
+                uSlot.innerHTML = '';
+            } else {
+                btn2.className = "px-2.5 py-0.5 rounded-md transition-all bg-white text-teal-900 shadow-sm font-black";
+                btn1.className = "px-2.5 py-0.5 rounded-md transition-all text-teal-100 font-semibold hover:text-white";
+                subtitle.textContent = "Livello Avanzato 🔥: Scomposizioni con numeri grandi di decine o unità. Usa i tasti Raggruppa!";
+                hSlot.innerHTML = '';
+                daSlot.innerHTML = `<button onclick="regroupDaToH()" class="w-full py-1 bg-rose-700 hover:bg-rose-800 text-white font-black text-[10px] sm:text-[11px] rounded-lg shadow transition-all active:scale-95" title="Raggruppa 10 decine in 1 centinaio">🔄 Raggruppa 10 Da ➔ 1 H</button>`;
+                uSlot.innerHTML = `<button onclick="regroupUToDa()" class="w-full py-1 bg-blue-700 hover:bg-blue-800 text-white font-black text-[10px] sm:text-[11px] rounded-lg shadow transition-all active:scale-95" title="Raggruppa 10 unità in 1 decina">🔄 Raggruppa 10 U ➔ 1 Da</button>`;
+            }
+
+            audio.playPop();
+            generateExerciseMode3();
+        }
+
+        function generateExerciseMode3() {
+            hideNumpad();
+            if (state.m3.level === 1) {
+                state.m3.targetH = (state.maxLimit === 99) ? 0 : Math.floor(Math.random() * 5) + 1;
+                state.m3.targetDa = Math.floor(Math.random() * 8) + 1;
+                state.m3.targetU = Math.floor(Math.random() * 8) + 1;
+            } else {
+                if (state.maxLimit === 99) {
+                    state.m3.targetH = 0;
+                    if (Math.random() < 0.5) {
+                        state.m3.targetDa = Math.floor(Math.random() * 6) + 10;
+                        state.m3.targetU = Math.floor(Math.random() * 9) + 1;
+                    } else {
+                        state.m3.targetDa = Math.floor(Math.random() * 5) + 1;
+                        state.m3.targetU = Math.floor(Math.random() * 15) + 10;
+                    }
+                } else {
+                    state.m3.targetH = Math.floor(Math.random() * 3) + 1;
+                    state.m3.targetDa = Math.floor(Math.random() * 10) + 8;
+                    state.m3.targetU = Math.floor(Math.random() * 10) + 8;
+                }
+            }
+
+            state.m3.targetTotal = (state.m3.targetH * 100) + (state.m3.targetDa * 10) + state.m3.targetU;
+
+            let components = [];
+            if (state.m3.targetH > 0) components.push({ text: `${state.m3.targetH}h`, speak: `${state.m3.targetH} centinaia` });
+            if (state.m3.targetDa > 0) components.push({ text: `${state.m3.targetDa}da`, speak: `${state.m3.targetDa} decine` });
+            if (state.m3.targetU > 0) components.push({ text: `${state.m3.targetU}u`, speak: `${state.m3.targetU} unità` });
+
+            for (let i = components.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [components[i], components[j]] = [components[j], components[i]];
+            }
+
+            if (components.length === 3) {
+                state.m3.promptText = `${components[0].text}, ${components[1].text} e ${components[2].text}`;
+                state.m3.promptSpeak = `${components[0].speak}, ${components[1].speak} e ${components[2].speak}`;
+            } else if (components.length === 2) {
+                state.m3.promptText = `${components[0].text} e ${components[1].text}`;
+                state.m3.promptSpeak = `${components[0].speak} e ${components[1].speak}`;
+            } else {
+                state.m3.promptText = `${components[0].text}`;
+                state.m3.promptSpeak = `${components[0].speak}`;
+            }
+
+            document.getElementById('m3-prompt-text').textContent = state.m3.promptText;
+            document.getElementById('m3-input-number').value = '';
+            clearWorkspaceMode3();
+        }
+
+        function speakCurrentPromptMode3() {
+            speakText(`Componi: ${state.m3.promptSpeak || state.m3.promptText}`);
+        }
+
+        function addBlockMode3(type) {
+            let key = (type === 'h') ? 'userH' : (type === 'da') ? 'userDa' : 'userU';
+            if (state.m3[key] < 35) {
+                state.m3[key]++;
+                audio.playPop();
+                renderMode3Workspace();
+            }
+        }
+
+        function removeBlockMode3(type) {
+            let key = (type === 'h') ? 'userH' : (type === 'da') ? 'userDa' : 'userU';
+            if (state.m3[key] > 0) {
+                state.m3[key]--;
+                audio.playRemove();
+                renderMode3Workspace();
+            }
+        }
+
+        function clearWorkspaceMode3() {
+            state.m3.userH = 0; state.m3.userDa = 0; state.m3.userU = 0;
+            renderMode3Workspace();
+        }
+
+        function regroupUToDa() {
+            if (state.m3.userU >= 10) {
+                let groups = Math.floor(state.m3.userU / 10);
+                state.m3.userU %= 10;
+                state.m3.userDa += groups;
+                audio.playSuccess();
+                renderMode3Workspace();
+            } else {
+                audio.playError();
+            }
+        }
+
+        function regroupDaToH() {
+            if (state.m3.userDa >= 10) {
+                let groups = Math.floor(state.m3.userDa / 10);
+                state.m3.userDa %= 10;
+                state.m3.userH += groups;
+                audio.playSuccess();
+                renderMode3Workspace();
+            } else {
+                audio.playError();
+            }
+        }
+
+        function renderMode3Workspace() {
+            const wH = document.getElementById('m3-workspace-h');
+            wH.innerHTML = '';
+            for (let i = 0; i < state.m3.userH; i++) wH.innerHTML += createPiattoSvg(`removeBlockMode3('h')`);
+
+            const wDa = document.getElementById('m3-workspace-da');
+            wDa.innerHTML = '';
+            for (let i = 0; i < state.m3.userDa; i++) wDa.innerHTML += createLungoSvg(`removeBlockMode3('da')`);
+
+            const wU = document.getElementById('m3-workspace-u');
+            wU.innerHTML = '';
+            for (let i = 0; i < state.m3.userU; i++) wU.innerHTML += createCubettoSvg(`removeBlockMode3('u')`);
+        }
+
+        function verifyMode3() {
+            hideNumpad();
+            const inputVal = parseInt(document.getElementById('m3-input-number').value) || 0;
+            const totalTableValue = (state.m3.userH * 100) + (state.m3.userDa * 10) + state.m3.userU;
+            
+            const isTotalCorrect = (totalTableValue === state.m3.targetTotal);
+            const isNumberCorrect = (inputVal === state.m3.targetTotal);
+
+            if (isTotalCorrect && isNumberCorrect) {
+                audio.playSuccess();
+                launchConfetti();
+                showModal({
+                    title: 'Bravissimo! 👏',
+                    message: `Hai composto correttamente formando il numero <strong>${state.m3.targetTotal}</strong>!`,
+                    isSuccess: true,
+                    actionText: 'Prossima Composizione ➔',
+                    actionCallback: () => { closeModal(); generateExerciseMode3(); }
+                });
+            } else {
+                audio.playError();
+                showModal({
+                    title: '🤔 Quasi! Riprova',
+                    message: 'Controlla la quantità sul tavolo (ricordati di raggruppare se hai 10 o più pezzi) e il numero scritto.',
+                    isSuccess: false,
+                    actionText: '✏️ Correggi',
+                    actionCallback: () => closeModal()
+                });
+            }
+        }
+
+        /* --- M4: SCOMPONI IL NUMERO --- */
+        function generateExerciseMode4() {
+            hideNumpad();
+            if (state.maxLimit === 99) {
+                state.m4.targetH = 0;
+                state.m4.targetDa = Math.floor(Math.random() * 8) + 1;
+                state.m4.targetU = Math.floor(Math.random() * 8) + 1;
+            } else {
+                state.m4.targetH = Math.floor(Math.random() * 7) + 1;
+                state.m4.targetDa = Math.floor(Math.random() * 8) + 1;
+                state.m4.targetU = Math.floor(Math.random() * 8) + 1;
+            }
+
+            state.m4.targetNumber = (state.m4.targetH * 100) + (state.m4.targetDa * 10) + state.m4.targetU;
+
+            document.getElementById('m4-target-number').textContent = state.m4.targetNumber;
+
+            document.getElementById('m4-in-h').value = '';
+            document.getElementById('m4-in-da').value = '';
+            document.getElementById('m4-in-u').value = '';
+
+            document.getElementById('m4-add-h').value = '';
+            document.getElementById('m4-add-da').value = '';
+            document.getElementById('m4-add-u').value = '';
+
+            clearWorkspaceMode4();
+        }
+
+        function speakCurrentTargetMode4() {
+            speakText(`${state.m4.targetNumber}, ${numberToWordsIt(state.m4.targetNumber)}`);
+        }
+
+        function speakSlowAdditiveHelpMode4() {
+            let parts = [];
+            if (state.m4.targetH > 0) parts.push(`${state.m4.targetH * 100}`);
+            if (state.m4.targetDa > 0) parts.push(`${state.m4.targetDa * 10}`);
+            if (state.m4.targetU > 0) parts.push(`${state.m4.targetU}`);
+
+            const textToSpeak = parts.join(' ,,, ,,, ');
+            speakText(textToSpeak, true);
+        }
+
+        function addBlockMode4(type) {
+            let key = (type === 'h') ? 'userH' : (type === 'da') ? 'userDa' : 'userU';
+            if (state.m4[key] < 15) {
+                state.m4[key]++;
+                audio.playPop();
+                renderMode4Workspace();
+            }
+        }
+
+        function removeBlockMode4(type) {
+            let key = (type === 'h') ? 'userH' : (type === 'da') ? 'userDa' : 'userU';
+            if (state.m4[key] > 0) {
+                state.m4[key]--;
+                audio.playRemove();
+                renderMode4Workspace();
+            }
+        }
+
+        function clearWorkspaceMode4() {
+            state.m4.userH = 0; 
+            state.m4.userDa = 0; 
+            state.m4.userU = 0;
+            renderMode4Workspace();
+        }
+
+        function renderMode4Workspace() {
+            const wH = document.getElementById('m4-workspace-h');
+            wH.innerHTML = '';
+            for (let i = 0; i < state.m4.userH; i++) wH.innerHTML += createPiattoSvg(`removeBlockMode4('h')`);
+
+            const wDa = document.getElementById('m4-workspace-da');
+            wDa.innerHTML = '';
+            for (let i = 0; i < state.m4.userDa; i++) wDa.innerHTML += createLungoSvg(`removeBlockMode4('da')`);
+
+            const wU = document.getElementById('m4-workspace-u');
+            wU.innerHTML = '';
+            for (let i = 0; i < state.m4.userU; i++) wU.innerHTML += createCubettoSvg(`removeBlockMode4('u')`);
+        }
+
+        function verifyMode4() {
+            hideNumpad();
+            const inH = parseInt(document.getElementById('m4-in-h').value) || 0;
+            const inDa = parseInt(document.getElementById('m4-in-da').value) || 0;
+            const inU = parseInt(document.getElementById('m4-in-u').value) || 0;
+
+            const addH = parseInt(document.getElementById('m4-add-h').value) || 0;
+            const addDa = parseInt(document.getElementById('m4-add-da').value) || 0;
+            const addU = parseInt(document.getElementById('m4-add-u').value) || 0;
+
+            const isBlocksOk = (state.m4.userH === state.m4.targetH) &&
+                               (state.m4.userDa === state.m4.targetDa) &&
+                               (state.m4.userU === state.m4.targetU);
+
+            const isCifreOk = (state.maxLimit === 99 || inH === state.m4.targetH) &&
+                              (inDa === state.m4.targetDa) &&
+                              (inU === state.m4.targetU);
+
+            const isAdditiveOk = (state.maxLimit === 99 || addH === state.m4.targetH * 100) &&
+                                 (addDa === state.m4.targetDa * 10) &&
+                                 (addU === state.m4.targetU);
+
+            if (isBlocksOk && isCifreOk && isAdditiveOk) {
+                audio.playSuccess();
+                launchConfetti();
+                showModal({
+                    title: 'Bravissimo! 🌟',
+                    message: `Hai scomposto perfettamente il numero <strong>${state.m4.targetNumber}</strong> sia con i blocchi che in cifre e valore additivo!`,
+                    isSuccess: true,
+                    actionText: 'Prossimo Esercizio ➔',
+                    actionCallback: () => { closeModal(); generateExerciseMode4(); }
+                });
+            } else {
+                audio.playError();
+                let msg = 'Controlla:<br>';
+                if (!isBlocksOk) msg += '• La rappresentazione sul tavolo con i blocchi.<br>';
+                if (!isCifreOk) msg += '• La scomposizione in cifre (h, da, u).<br>';
+                if (!isAdditiveOk) msg += '• La scomposizione in valore additivo (es. 200 + 30 + 5).';
+
+                showModal({
+                    title: '🤔 C\'è qualcosa da correggere!',
+                    message: msg,
+                    isSuccess: false,
+                    actionText: '✏️ Correggi',
+                    actionCallback: () => closeModal()
+                });
+            }
+        }
+
+        /* --- GUIDA --- */
+        function renderGuide() {
+            document.getElementById('guide-cubetto-svg').innerHTML = createCubettoSvg();
+            document.getElementById('guide-lungo-svg').innerHTML = createLungoSvg();
+            document.getElementById('guide-piatto-svg').innerHTML = createPiattoSvg();
+        }
+
+        /* --- MODALE FEEDBACK & CONFETTI --- */
+        let activeModalCallback = null;
+
+        function showModal(config) {
+            const modal = document.getElementById('modal-feedback');
+            const card = document.getElementById('modal-card');
+            
+            document.getElementById('modal-title').textContent = config.title;
+            document.getElementById('modal-message').innerHTML = config.message;
+            document.getElementById('modal-icon').textContent = config.isSuccess ? '🎉' : '🧐';
+
+            card.className = config.isSuccess 
+                ? "bg-white rounded-3xl border-4 border-emerald-400 p-5 sm:p-6 max-w-sm w-full text-center shadow-2xl space-y-3 animate-pop-in"
+                : "bg-white rounded-3xl border-4 border-amber-400 p-5 sm:p-6 max-w-sm w-full text-center shadow-2xl space-y-3 animate-pop-in";
+
+            const actionsDiv = document.getElementById('modal-actions');
+            actionsDiv.innerHTML = '';
+            
+            const btn = document.createElement('button');
+            btn.className = config.isSuccess 
+                ? "w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl shadow-lg transition-all text-sm active:scale-95 border-b-4 border-emerald-700"
+                : "w-full py-3 bg-amber-500 hover:bg-amber-600 text-amber-950 font-black rounded-2xl shadow-lg transition-all text-sm active:scale-95 border-b-4 border-amber-700";
+            
+            btn.innerHTML = config.actionText;
+            activeModalCallback = config.actionCallback;
+            btn.onclick = () => { if (activeModalCallback) activeModalCallback(); };
+
+            actionsDiv.appendChild(btn);
+            modal.classList.remove('hidden');
+        }
+
+        function closeModal() {
+            document.getElementById('modal-feedback').classList.add('hidden');
+            audio.playPop();
+        }
+
+        function launchConfetti() {
+            const canvas = document.getElementById('confetti-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+
+            const particles = [];
+            const colors = ['#3B82F6', '#EF4444', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899'];
+
+            for (let i = 0; i < 80; i++) {
+                particles.push({
+                    x: canvas.width / 2,
+                    y: canvas.height / 2,
+                    vx: (Math.random() - 0.5) * 12,
+                    vy: (Math.random() - 0.7) * 12,
+                    size: Math.random() * 7 + 5,
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    rotation: Math.random() * 360,
+                    rSpeed: (Math.random() - 0.5) * 8,
+                    opacity: 1
+                });
+            }
+
+            let frames = 0;
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                let alive = false;
+                particles.forEach(p => {
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.22;
+                    p.rotation += p.rSpeed;
+                    p.opacity -= 0.014;
+
+                    if (p.opacity > 0) {
+                        alive = true;
+                        ctx.save();
+                        ctx.translate(p.x, p.y);
+                        ctx.rotate((p.rotation * Math.PI) / 180);
+                        ctx.globalAlpha = Math.max(0, p.opacity);
+                        ctx.fillStyle = p.color;
+                        ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+                        ctx.restore();
+                    }
+                });
+
+                if (alive && frames < 120) {
+                    frames++;
+                    requestAnimationFrame(animate);
+                } else {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+            animate();
+        }
+
+        window.addEventListener('load', () => {
+            initVirtualNumpad();
+            switchMode(1);
+            setLimit(999);
+            setMode3Level(1);
+        });
+
+        window.addEventListener('resize', () => {
+            const canvas = document.getElementById('confetti-canvas');
+            if (canvas) {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+            }
+        });
+    </script>
+</body>
+</html>
